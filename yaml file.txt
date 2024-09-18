@@ -1,0 +1,6 @@
+dependencies:
+  flutter:
+    sdk: flutter
+  qr_flutter: ^4.0.0 # For generating QR codes
+  qr_code_scanner: ^0.7.0 # For scanning QR codes
+  url_launcher: ^6.0.20 # For launching phone calls

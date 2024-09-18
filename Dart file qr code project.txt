@@ -1,0 +1,220 @@
+import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+void main() => runApp(MyApp());
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'onepio',
+      theme: ThemeData(
+        primarySwatch: Colors.green,
+      ),
+      home: MyHomePage(),
+    );
+  }
+}
+
+class MyHomePage extends StatefulWidget {
+  @override
+  _MyHomePageState createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  final TextEditingController phoneController = TextEditingController();
+  String generatedQR = '';
+  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
+  QRViewController? controller;
+
+  // Function to generate QR code
+  void generateQRCode() {
+    setState(() {
+      generatedQR = phoneController.text;
+    });
+  }
+
+  // Function to launch the phone dialer and call the number
+  Future<void> _callPhoneNumber(String phoneNumber) async {
+    final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(phoneUri)) {
+      await launchUrl(phoneUri);
+    } else {
+      throw 'Could not launch $phoneNumber';
+    }
+  }
+
+  // Function to reset the input and QR code
+  void reset() {
+    setState(() {
+      phoneController.clear();
+      generatedQR = '';
+    });
+  }
+
+  // Function to share the QR code
+  void shareQRCode() {
+    // You can implement sharing functionality here if needed
+  }
+
+  // QR scanner widget
+  Widget buildQrView(BuildContext context) {
+    return QRView(
+      key: qrKey,
+      onQRViewCreated: _onQRViewCreated,
+    );
+  }
+
+  // This method is called when the QR view is created
+  void _onQRViewCreated(QRViewController qrController) {
+    setState(() {
+      controller = qrController;
+    });
+    qrController.scannedDataStream.listen((scanData) {
+      _callPhoneNumber(scanData.code!); // Automatically call the scanned number
+    });
+  }
+
+  @override
+  void dispose() {
+    controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('onepio'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: <Widget>[
+            ElevatedButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => QRScannerScreen()),
+              ),
+              style: ElevatedButton.styleFrom(
+                primary: Colors.green,
+              ),
+              child: Text('Scan QR Code'),
+            ),
+            SizedBox(height: 20),
+            TextField(
+              controller: phoneController,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Enter Phone Number',
+              ),
+              keyboardType: TextInputType.phone,
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: generateQRCode,
+              style: ElevatedButton.styleFrom(
+                primary: Colors.green,
+              ),
+              child: Text('Generate QR Code'),
+            ),
+            SizedBox(height: 20),
+            generatedQR.isNotEmpty
+                ? QrImage(
+                    data: generatedQR,
+                    version: QrVersions.auto,
+                    size: 200.0,
+                  )
+                : Container(),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: reset,
+              style: ElevatedButton.styleFrom(
+                primary: Colors.red,
+              ),
+              child: Text('Reset'),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: shareQRCode,
+              style: ElevatedButton.styleFrom(
+                primary: Colors.blue,
+              ),
+              child: Text('Share QR Code'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Separate screen for QR scanning
+class QRScannerScreen extends StatefulWidget {
+  @override
+  _QRScannerScreenState createState() => _QRScannerScreenState();
+}
+
+class _QRScannerScreenState extends State<QRScannerScreen> {
+  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
+  QRViewController? controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('QR Scanner'),
+      ),
+      body: Column(
+        children: <Widget>[
+          Expanded(flex: 5, child: buildQrView(context)),
+          Expanded(
+            flex: 1,
+            child: Center(
+              child: ElevatedButton(
+                onPressed: () {
+                  controller?.pauseCamera();
+                  Navigator.pop(context); // Go back after scanning
+                },
+                child: Text('Go Back'),
+              ),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget buildQrView(BuildContext context) {
+    return QRView(
+      key: qrKey,
+      onQRViewCreated: _onQRViewCreated,
+    );
+  }
+
+  void _onQRViewCreated(QRViewController qrController) {
+    setState(() {
+      controller = qrController;
+    });
+    qrController.scannedDataStream.listen((scanData) {
+      _callPhoneNumber(scanData.code!); // Automatically call the scanned number
+    });
+  }
+
+  Future<void> _callPhoneNumber(String phoneNumber) async {
+    final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(phoneUri)) {
+      await launchUrl(phoneUri);
+    } else {
+      throw 'Could not launch $phoneNumber';
+    }
+  }
+
+  @override
+  void dispose() {
+    controller?.dispose();
+    super.dispose();
+  }
+}
